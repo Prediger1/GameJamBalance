@@ -6,10 +6,14 @@ public class PlayerMovement : MonoBehaviour
     public float speed = 5f;
     public float gravity = -9.81f;
     public float jumpHeight = 2f;
-    public float forwardJumpBoost = 2f;
 
     private CharacterController controller;
     private Vector3 velocity;
+    private bool isGrounded;
+
+    public int totalScore = 0;
+    public int positiveHits = 0;
+    public int negativeHits = 0;
 
     void Start()
     {
@@ -19,40 +23,45 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // Ground check
-        if (controller.isGrounded && velocity.y < 0)
+        isGrounded = controller.isGrounded;
+
+        if (isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
         }
 
-        // Movement
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
 
         Vector3 move = transform.right * x + transform.forward * z;
         controller.Move(move * speed * Time.deltaTime);
 
-       
-        if (controller.isGrounded && Input.GetKeyDown(KeyCode.Space))
+        if (isGrounded && Input.GetButtonDown("Jump"))
         {
-            
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-
-            
-            if (z > 0.1f)
-            {
-                Vector3 boost = transform.forward * forwardJumpBoost;
-                controller.Move(boost * Time.deltaTime);
-            }
-
-            Debug.Log("Jump!");
         }
 
-        
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
+    }
 
-        
-        Debug.Log("Grounded: " + controller.isGrounded + " | velY: " + velocity.y);
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        Tile tile = hit.collider.GetComponent<Tile>();
+        if (tile == null) return;           
+
+        if (tile.IsConsumed) return;    
+        tile.IsConsumed = true;
+
+        int value = tile.Value;
+        totalScore += value;
+
+        if (value > 0) positiveHits++;
+        else negativeHits++;
+
+        Debug.Log(
+            $"STEPPED ON TILE -> Id: {tile.Id}, Name: {tile.name}, Value: {value} | " +
+            $"TotalScore: {totalScore}, +Tiles: {positiveHits}, -Tiles: {negativeHits}"
+        );
     }
 }
